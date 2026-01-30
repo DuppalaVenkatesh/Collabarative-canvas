@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collabarative Cavas</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside class="toolbar">
+        <div class="tool-group">
+          <button id="brushBtn" class="active" title="Brush">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button id="eraserBtn" title="Eraser">
+            <i class="fa-solid fa-eraser"></i>
+          </button>
+        </div>
+        <div class="tool-group">
+          <label>Color</label>
+          <input type="color" id="colorPicker" value="#000000" />
+          <div class="swatches">
+            <div
+              class="swatch"
+              style="background: #ff0000"
+              data-color="#ff0000"
+            ></div>
+            <div
+              class="swatch"
+              style="background: #00ff00"
+              data-color="#00ff00"
+            ></div>
+            <div
+              class="swatch"
+              style="background: #0000ff"
+              data-color="#0000ff"
+            ></div>
+          </div>
+        </div>
+        <div class="tool-group">
+          <label>Width</label>
+          <input min="1" max="50" value="5" type="range" id="widthSlider" />
+          <span id="widthVal">5px</span>
+        </div>
+        <div class="tool-group">
+          <button id="undoBtn" title="Undo">
+            <i class="fa-solid fa-arrow-turn-up"></i>
+          </button>
+          <button id="redoBtn" title="Redo">
+            <i class="fa-solid fa-arrow-turn-down"></i>
+          </button>
+        </div>
+      </aside>
+      <main class="canvas-container">
+        <div id="cursor-layer"></div>
+        <canvas id="mainCanvas"></canvas>
+      </main>
+    </div>
+    <script
+      src="https://kit.fontawesome.com/8b3d0a042e.js"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="./main.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  </body>
+</html>

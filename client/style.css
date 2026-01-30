@@ -1,0 +1,112 @@
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  font-family: sans-serif;
+  background-color: #f0f0f0;
+  background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+.toolbar {
+  width: 80px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20px 0;
+  box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.tool-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#widthSlider {
+  width: 75px;
+}
+
+#colorPicker {
+  cursor: pointer;
+}
+
+button {
+  width: 50px;
+  height: 50px;
+  border: 1px solid #ddd;
+  background-color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: 0.2s;
+}
+/* The Keyframe Animation */
+@keyframes bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85); } /* Shrink on click */
+  50% { transform: scale(1.1); }  /* Pop up */
+  100% { transform: scale(1); }   /* Settle back */
+}
+
+.bounce-effect {
+  animation: bounce 0.3s ease-in-out;
+}
+
+button:hover {
+  filter: brightness(0.95);
+  transform: translateY(-2px);
+  transition: transform 0.1s ease;
+}
+
+button.active {
+  border-color: #4a90e2;
+  background-color: #eef6ff;
+  transform: translateY(0);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+
+.canvas-container {
+  display: flex;
+  flex-grow: 1;
+  position: relative;
+  height: 100vh;
+}
+
+canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+.remote-cursor {
+  position: absolute;
+  pointer-events: none;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.1s linear;
+}
