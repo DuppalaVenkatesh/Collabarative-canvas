@@ -1,4 +1,4 @@
-const socket = io("https://collabarative-canvas.onrender.com");
+const socket = io("http://localhost:3000");
 
 const drawRemote = (ctx, data) => {
   const { from, to, settings } = data;
