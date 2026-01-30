@@ -1,6 +1,8 @@
 import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 const server = createServer(app);
@@ -8,6 +10,11 @@ const port = process.env.PORT || 3000;
 const io = new Server(server, {
   cors: { origin: "*" },
 });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "../")));
 
 let drawingHistory = [];
 let redoStack = [];
