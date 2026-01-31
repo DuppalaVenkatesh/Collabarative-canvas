@@ -1,51 +1,119 @@
-Technical Architecture
+Technical Architecture: Collaborative Canvas
 
-1. Overview
+1. Data Flow Diagram
 
-The application utilizes an Event-Sourced Architecture. Rather than transmitting large image buffers, the system communicates granular "drawing events" (line segments). This significantly reduces bandwidth and allows for complex features like collaborative undo/redo.
+The application follows a Uni-directional Event-Sourced data flow. Instead of sharing a massive image buffer, we share the intent (the stroke) and let each client render it locally.
 
-2. The Source of Truth (Server-Side)
+[User A (Mouse Move)] 
+      |
+      v
+[canvas.js (getCoordinates)] -> [Dispatch local 'draw-event']
+      |
+      v
+[websocket.js (socket.emit('draw'))] 
+      |
+      v
+[server.js (socket.broadcast.emit('on-draw'))] -> [Push to drawingHistory]
+      |
+      v
+[User B (socket.on('on-draw'))]
+      |
+      v
+[websocket.js (drawRemote)] -> [Canvas API (stroke)]
 
-The Node.js server (server.js) maintains the master state using two primary data structures:
 
-drawingHistory: An array of every stroke segment emitted by any client.
+2. WebSocket Protocol
 
-redoStack: A stack used to store segments popped during an "Undo" event.
+We utilize Socket.io for bi-directional, low-latency communication.
 
-Global Undo/Redo Mechanism
+Message Formats & Events
 
-This project solves the challenge of global history management through a Full-Replay Strategy:
+Event Name
 
-When an undo event is received, the server pops the last segment from drawingHistory.
+Direction
 
-The server broadcasts the updated history to all clients via io.emit('update-canvas').
+Payload Structure
 
-Clients clear their local canvas and loop through the history array to re-render the board.
+Description
 
-The redoStack is cleared whenever a user starts a new drawing to prevent historical branching conflicts.
+init
 
-3. Frontend Module Strategy
+Server -> Client
 
-The client is architected to separate concerns, preventing "spaghetti code":
+{ history: Array, users: Object }
 
-View Layer (canvas.js): Manages the HTML5 Canvas context. It is completely decoupled from the network; it merely dispatches CustomEvents (draw-event, mouse-position) when user input is detected.
+Sent on connection to sync the current state.
 
-Network Layer (websocket.js): Acts as the bridge. It translates local DOM events into Socket.io messages and converts incoming socket messages into canvas drawing commands.
+draw
 
-State Layer (main.js): Maintains UI settings (active color, tool, width) and initializes the sub-modules.
+Client -> Server
 
-4. Real-Time Performance
+{ from: {x,y}, to: {x,y}, settings: {} }
 
-Coordinate Normalization: Using getBoundingClientRect(), coordinates are normalized relative to the canvas element rather than the viewport, ensuring accuracy across different screen resolutions.
+Emitted every frame while the mouse is moving.
 
-Optimization: The canvas context is initialized with { desynchronized: true }, which bypasses certain browser compositor buffers to reduce input-to-render latency.
+on-draw
 
-Context Isolation: Remote drawing logic uses ctx.save() and ctx.restore() to ensure that one user's brush settings (like the eraser mode) do not overwrite the local user's active settings.
+Server -> Client
+
+Same as draw
+
+Broadcasted to all other users to render the stroke.
+
+mouse-move
+
+Client -> Server
+
+{ x: Number, y: Number }
+
+Emitted to update the user's cursor position.
+
+undo / redo
+
+Client -> Server
+
+void
+
+Triggers global history manipulation.
+
+update-canvas
+
+Server -> Client
+
+Array (drawingHistory)
+
+Commands all clients to wipe and redraw the board.
+
+3. Undo / Redo Strategy
+
+The "Intentionally Difficult" global undo/redo is handled through a Full-Replay System:
+
+Stacks: The server maintains a drawingHistory stack and a redoStack.
+
+The Logic: When a user clicks Undo, the server pops the last segment from the history and moves it to the redo stack.
+
+Synchronization: The server then sends the entire updated history to every client.
+
+Client Rendering: Clients clear their 2D context using clearRect() and iterate through the history array, re-drawing every segment using the drawRemote function.
+
+Conflict Prevention: The redoStack is cleared whenever any user performs a new draw action, preventing historical branching.
+
+4. Performance Decisions
+
+desynchronized: true: In canvas.js, the 2D context is initialized with this flag. It hints to the browser to bypass the compositor's double-buffering, significantly reducing input lag for the drawer.
+
+Normalized Coordinates: We use getBoundingClientRect() to calculate offsets. This ensures that even if the CSS layout shifts or the window is resized, the $(x, y)$ coordinates remain accurate relative to the canvas origin $(0,0)$.
+
+ImageData Buffering: During window resizes, we use getImageData and putImageData to prevent the browser from wiping the user's current drawing when the canvas internal resolution changes.
+
+Hardware Acceleration: Animations (like the button bounce) are handled via CSS transform and opacity to ensure they run on the GPU, keeping the main thread free for drawing calculations.
 
 5. Conflict Handling
 
-Drawing conflicts are handled by the Sequential Ordering of the WebSocket server. Since Socket.io processes events in the order they arrive, the server assigns a definitive timeline to the strokes. Even if two users draw in the same area simultaneously, the canvas renders them according to the server's processed sequence.
+In a collaborative environment, two users drawing at the exact same time is inevitable.
 
-6. UX Design Choices
+Server-Side Ordering: Since WebSockets process events sequentially, the server acts as the final arbiter of time. The order in which events reach server.js is the "official" order of the drawing.
 
-Persistence: Upon connection, the init event "hydrates" the new user's canvas with the existing board history, ensuring they are not looking at a blank screen while others are mid-session.
+Context Isolation: We use ctx.save() and ctx.restore() in the remote drawing functions. This ensures that User A's "Eraser" setting doesn't accidentally change User B's active "Brush" setting mid-stroke.
+
+Event Sourcing: By treating the canvas as a sequence of events rather than a static image, we avoid "pixel-overwrite" conflicts where one user might accidentally wipe another's work due to latency.
